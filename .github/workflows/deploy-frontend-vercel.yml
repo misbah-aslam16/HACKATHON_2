@@ -30,11 +30,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Vercel Secrets
+        id: check-secrets
+        run: |
+          if [ -z "${{ secrets.VERCEL_TOKEN }}" ] || [ -z "${{ secrets.VERCEL_ORG_ID }}" ] || [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+            echo "missing-secrets=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Missing Vercel secrets. Please add VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID to GitHub secrets."
+          else
+            echo "missing-secrets=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Install Vercel CLI
+        if: steps.check-secrets.outputs.missing-secrets == 'false'
         run: npm install -g vercel
 
       - name: Deploy to Vercel (Production)
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: steps.check-secrets.outputs.missing-secrets == 'false' && github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           cd todo-app-fullstack
           
@@ -49,7 +60,7 @@ jobs:
             --env BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
 
       - name: Deploy to Vercel (Preview)
-        if: github.event_name == 'pull_request'
+        if: steps.check-secrets.outputs.missing-secrets == 'false' && github.event_name == 'pull_request'
         run: |
           cd todo-app-fullstack
           
@@ -63,7 +74,7 @@ jobs:
             --env BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
 
       - name: Comment PR with deployment URL
-        if: github.event_name == 'pull_request'
+        if: steps.check-secrets.outputs.missing-secrets == 'false' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
@@ -78,8 +89,23 @@ jobs:
         run: |
           echo "## 🚀 Frontend Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status:** Deployed to Vercel" >> $GITHUB_STEP_SUMMARY
-          echo "**Backend:** https://hackathon2-production-8e72.up.railway.app" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.check-secrets.outputs.missing-secrets }}" == "true" ]; then
+            echo "**Status:** ⚠️ Skipped - Missing Vercel Secrets" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Required Secrets" >> $GITHUB_STEP_SUMMARY
+            echo "Please add these secrets to GitHub: https://github.com/asma-aslam30/HACKATHON_2/settings/secrets/actions" >> $GITHUB_STEP_SUMMARY
+            echo "- VERCEL_TOKEN" >> $GITHUB_STEP_SUMMARY
+            echo "- VERCEL_ORG_ID" >> $GITHUB_STEP_SUMMARY
+            echo "- VERCEL_PROJECT_ID" >> $GITHUB_STEP_SUMMARY
+            echo "- VERCEL_PROJECT_NAME" >> $GITHUB_STEP_SUMMARY
+            echo "- DATABASE_URL" >> $GITHUB_STEP_SUMMARY
+            echo "- DATABASE_URL_UNPOOLED" >> $GITHUB_STEP_SUMMARY
+            echo "- AUTH_SECRET" >> $GITHUB_STEP_SUMMARY
+            echo "- BETTER_AUTH_SECRET" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** ✅ Deployed to Vercel" >> $GITHUB_STEP_SUMMARY
+            echo "**Backend:** https://hackathon2-production-8e72.up.railway.app" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "**Branch:** ${{ github.ref }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY

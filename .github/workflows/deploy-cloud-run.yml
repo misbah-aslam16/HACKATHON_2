@@ -3,12 +3,10 @@ name: Deploy to Cloud Run
 on:
   push:
     branches:
-      - main
-      - develop
+      - cloud-run-deploy
   pull_request:
     branches:
-      - main
-      - develop
+      - cloud-run-deploy
 
 env:
   GCP_PROJECT_ID: todo-497210

@@ -42,13 +42,13 @@ export default function SettingsPage() {
   }, [user])
 
   const applyTheme = (t) => {
+    if (typeof window === 'undefined') return
     const root = document.documentElement
     if (t === 'dark') {
       root.classList.add('dark')
     } else if (t === 'light') {
       root.classList.remove('dark')
     } else {
-      // system
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       prefersDark ? root.classList.add('dark') : root.classList.remove('dark')
     }

@@ -1,0 +1,140 @@
+# Google Cloud Build Configuration
+# Automated CI/CD pipeline for Todo App deployment to Cloud Run
+
+steps:
+  # Step 1: Build Backend Docker Image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    args:
+      - 'build'
+      - '-f'
+      - 'infra/docker/Dockerfile.backend'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:latest'
+      - '.'
+    waitFor: ['-']
+
+  # Step 2: Push Backend Image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:${SHORT_SHA}'
+    waitFor: ['build-backend']
+
+  # Step 3: Build Frontend Docker Image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args:
+      - 'build'
+      - '-f'
+      - 'infra/docker/Dockerfile.frontend'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_BACKEND_URL=${_BACKEND_URL}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_APP_URL=${_FRONTEND_URL}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:${SHORT_SHA}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:latest'
+      - '.'
+    waitFor: ['-']
+
+  # Step 4: Push Frontend Image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:${SHORT_SHA}'
+    waitFor: ['build-frontend']
+
+  # Step 5: Deploy Backend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-backend'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'todo-backend'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '3600'
+      - '--max-instances'
+      - '10'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'DATABASE_URL=${_DATABASE_URL},DATABASE_URL_UNPOOLED=${_DATABASE_URL_UNPOOLED},PORT=8080'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+    waitFor: ['push-backend']
+
+  # Step 6: Deploy Frontend to Cloud Run
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-frontend'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'todo-frontend'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:${SHORT_SHA}'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '3600'
+      - '--max-instances'
+      - '10'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - 'NEXT_PUBLIC_BACKEND_URL=${_BACKEND_URL},DATABASE_URL=${_DATABASE_URL},DATABASE_URL_UNPOOLED=${_DATABASE_URL_UNPOOLED},AUTH_SECRET=${_AUTH_SECRET},BETTER_AUTH_SECRET=${_BETTER_AUTH_SECRET},PORT=3000'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_REGION}'
+    waitFor: ['push-frontend', 'deploy-backend']
+
+# Build configuration
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+# Images to be pushed to registry
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/backend:latest'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:${SHORT_SHA}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/frontend:latest'
+
+# Substitution variables
+substitutions:
+  _REGION: 'us-central1'
+  _ARTIFACT_REGISTRY_REPO: 'todo-app'
+  _BACKEND_URL: 'https://todo-backend-xxxxx.run.app'
+  _FRONTEND_URL: 'https://todo-frontend-xxxxx.run.app'
+  _DATABASE_URL: ''
+  _DATABASE_URL_UNPOOLED: ''
+  _AUTH_SECRET: ''
+  _BETTER_AUTH_SECRET: ''
+
+# Build timeout
+timeout: '3600s'
+
+# Tags for organizing builds
+tags:
+  - 'gcp-cloud'
+  - 'cloud-run'
+  - 'todo-app'
+  - '${SHORT_SHA}'

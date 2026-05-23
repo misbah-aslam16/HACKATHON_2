@@ -1,10 +1,20 @@
 import { createAuthClient } from "better-auth/react"
 
+/**
+ * Auth Client Configuration
+ * 
+ * Points to the Railway backend for authentication
+ * - Production: https://hackathon2-production-8e72.up.railway.app
+ * - Development: http://localhost:8000
+ * 
+ * The backend must expose /api/auth/* endpoints
+ */
 export const authClient = createAuthClient({
-  // Always use the actual browser origin — works from localhost AND LAN IP
-  baseURL: typeof window !== 'undefined'
-    ? window.location.origin
-    : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000',
+  // Enable credentials for cross-origin requests
+  fetchOptions: {
+    credentials: 'include'
+  }
 })
 
 export const { useSession, signIn, signOut, signUp } = authClient;

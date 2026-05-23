@@ -1,0 +1,138 @@
+# Google Cloud Run Configuration
+# This file defines the Cloud Run services for the Todo App
+
+# Backend Service Configuration
+backend:
+  name: todo-backend
+  image: ${ARTIFACT_REGISTRY_URL}/backend:latest
+  platform: managed
+  region: ${GCP_REGION}
+  memory: 512Mi
+  cpu: 1
+  timeout: 3600
+  max-instances: 10
+  allow-unauthenticated: true
+  
+  environment-variables:
+    PORT: "8080"
+    PYTHONDONTWRITEBYTECODE: "1"
+    PYTHONUNBUFFERED: "1"
+  
+  secrets:
+    - name: DATABASE_URL
+      version: latest
+    - name: DATABASE_URL_UNPOOLED
+      version: latest
+  
+  health-check:
+    path: /health
+    initial-delay: 20
+    timeout: 10
+    period: 30
+    failure-threshold: 3
+
+# Frontend Service Configuration
+frontend:
+  name: todo-frontend
+  image: ${ARTIFACT_REGISTRY_URL}/frontend:latest
+  platform: managed
+  region: ${GCP_REGION}
+  memory: 512Mi
+  cpu: 1
+  timeout: 3600
+  max-instances: 10
+  allow-unauthenticated: true
+  
+  environment-variables:
+    PORT: "3000"
+    NODE_ENV: "production"
+    NEXT_TELEMETRY_DISABLED: "1"
+  
+  secrets:
+    - name: NEXT_PUBLIC_BACKEND_URL
+      version: latest
+    - name: DATABASE_URL
+      version: latest
+    - name: DATABASE_URL_UNPOOLED
+      version: latest
+    - name: AUTH_SECRET
+      version: latest
+    - name: BETTER_AUTH_SECRET
+      version: latest
+  
+  health-check:
+    path: /
+    initial-delay: 30
+    timeout: 10
+    period: 30
+    failure-threshold: 3
+
+# Artifact Registry Configuration
+artifact-registry:
+  repository: todo-app
+  format: docker
+  location: ${ARTIFACT_REGISTRY_REGION}
+  description: "Todo App Docker Images"
+
+# Networking Configuration
+networking:
+  # Cloud Run services are public by default
+  # To restrict access, use Cloud IAM policies
+  ingress: all  # all, internal, internal-and-cloud-load-balancing
+  
+  # CORS Configuration (if needed)
+  cors:
+    allowed-origins:
+      - "*"
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+
+# Scaling Configuration
+scaling:
+  backend:
+    min-instances: 0
+    max-instances: 10
+    concurrency: 80
+  
+  frontend:
+    min-instances: 0
+    max-instances: 10
+    concurrency: 80
+
+# Monitoring & Logging
+monitoring:
+  enable-cloud-logging: true
+  enable-cloud-trace: true
+  enable-cloud-profiler: false
+  
+  alerts:
+    - name: high-error-rate
+      condition: error_count > 10 in 5m
+      notification-channel: email
+    
+    - name: high-latency
+      condition: p95_latency > 5000ms
+      notification-channel: email
+
+# Cost Optimization
+cost-optimization:
+  # Use Cloud Run's automatic scaling
+  auto-scaling: true
+  
+  # Set appropriate memory/CPU ratios
+  memory-cpu-ratio: 512Mi:1
+  
+  # Use Cloud CDN for frontend
+  cdn-enabled: true
+  
+  # Set appropriate timeouts
+  request-timeout: 3600s
+  
+  # Limit concurrent requests
+  max-concurrency: 80

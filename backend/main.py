@@ -41,6 +41,7 @@ app.add_middleware(
         "https://*.vercel.app",
         "https://*.run.app",
         "https://*.web.app",
+        "https://todo-app-frontend.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],

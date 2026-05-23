@@ -332,6 +332,31 @@ export default function HomePage() {
 
           {/* Main content */}
           <main className="lg:col-span-3 space-y-5">
+            {/* Search bar */}
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                data-search
+                type="text"
+                placeholder="Search tasks… (press /)"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
             {/* Toolbar: New Task + Filters + Sort */}
             <div className="flex flex-wrap items-center gap-2">
               <Button onClick={() => setShowCreateModal(true)} size="sm">

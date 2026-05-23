@@ -1,10 +1,14 @@
 import { prisma } from '../../../lib/db'
 import { auth } from '../../../lib/auth'
-import { toNodeHandler } from 'better-auth/node'
 
 async function getSessionUser(req) {
   try {
-    const session = await auth.api.getSession({ headers: req.headers })
+    // Convert Node.js headers to Web API Headers object
+    const headers = new Headers()
+    Object.entries(req.headers).forEach(([key, value]) => {
+      if (value) headers.set(key, Array.isArray(value) ? value.join(',') : value)
+    })
+    const session = await auth.api.getSession({ headers })
     return session?.user || null
   } catch {
     return null
@@ -33,7 +37,7 @@ export default async function handler(req, res) {
   // PATCH - update profile name
   if (req.method === 'PATCH') {
     const sessionUser = await getSessionUser(req)
-    if (!sessionUser) return res.status(401).json({ error: 'Unauthorized' })
+    if (!sessionUser) return res.status(401).json({ error: 'Unauthorized - please log in' })
 
     const { name } = req.body
     if (!name || !name.trim()) return res.status(400).json({ error: 'Name is required' })
@@ -54,10 +58,9 @@ export default async function handler(req, res) {
   // DELETE - delete account and all data
   if (req.method === 'DELETE') {
     const sessionUser = await getSessionUser(req)
-    if (!sessionUser) return res.status(401).json({ error: 'Unauthorized' })
+    if (!sessionUser) return res.status(401).json({ error: 'Unauthorized - please log in' })
 
     try {
-      // Cascade delete - Prisma handles related records via onDelete: Cascade
       await prisma.user.delete({ where: { id: sessionUser.id } })
       return res.status(200).json({ success: true })
     } catch (error) {

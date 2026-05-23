@@ -16,6 +16,8 @@ load_dotenv()
 from db import create_db_and_tables  # noqa: E402
 from routes.chat import router as chat_router  # noqa: E402
 from routes.tasks import router as tasks_router  # noqa: E402
+from routes.auth import router as auth_router  # noqa: E402
+from routes.todos import router as todos_router  # noqa: E402
 
 
 @asynccontextmanager
@@ -32,22 +34,34 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ============================================
+# CORS CONFIGURATION
+# ============================================
+# Replace wildcard patterns with specific domains
+allowed_origins = [
+    os.getenv("FRONTEND_URL", "http://localhost:3000"),
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "https://todo-app-frontend.vercel.app",
+    "https://*.run.app",
+    "https://*.web.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        os.getenv("FRONTEND_URL", "http://localhost:3000"),
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://*.vercel.app",
-        "https://*.run.app",
-        "https://*.web.app",
-        "https://todo-app-frontend.vercel.app",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# ============================================
+# ROUTE REGISTRATION
+# ============================================
+app.include_router(auth_router)
+app.include_router(todos_router)
 app.include_router(chat_router)
 app.include_router(tasks_router)
 

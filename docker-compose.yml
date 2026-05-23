@@ -1,7 +1,7 @@
 # Docker Compose — Todo App (Phase III/IV)
 # Uses Neon DB (no local postgres needed)
 # Usage:
-#   1. Copy backend/.env.example to backend/.env and fill values
+#   1. Copy backend/.env.local.example to backend/.env.local and fill values
 #   2. Copy todo-app-fullstack/.env.local.example to todo-app-fullstack/.env.local and fill values
 #   3. docker-compose up --build
 
@@ -16,11 +16,11 @@ services:
       dockerfile: infra/docker/Dockerfile.backend
     container_name: todo-backend
     env_file:
-      - backend/.env
+      - backend/.env.local
     environment:
-      FRONTEND_URL: http://localhost:3000
+      FRONTEND_URL: http://frontend:3000
     ports:
-      - "8000:8000"
+      - "8080:8000"
     networks:
       - todo-network
     healthcheck:
@@ -40,7 +40,7 @@ services:
     env_file:
       - todo-app-fullstack/.env.local
     environment:
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      NEXT_PUBLIC_BACKEND_URL: http://backend:8000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
     ports:
       - "3000:3000"

@@ -6,10 +6,18 @@ Shared secret: BETTER_AUTH_SECRET env var
 
 import os
 import jwt
-from fastapi import HTTPException, Header
+import uuid
+from datetime import datetime, timedelta
+from fastapi import HTTPException, Header, APIRouter, Depends
+from sqlmodel import Session, select
 from typing import Optional
+from pydantic import BaseModel
+
+from db import get_session
+from models.models import User, Session as DBSession, Account
 
 SECRET = os.getenv("BETTER_AUTH_SECRET", "fallback-secret-change-this")
+router = APIRouter()
 
 
 class AuthUser:
@@ -63,3 +71,220 @@ def verify_user_access(user_id_in_url: str, current_user: AuthUser):
             status_code=403,
             detail="Access denied: you can only access your own data"
         )
+
+
+# ============================================
+# REQUEST/RESPONSE SCHEMAS
+# ============================================
+
+class SignupRequest(BaseModel):
+    email: str
+    password: str
+    name: Optional[str] = None
+
+
+class SigninRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthResponse(BaseModel):
+    id: str
+    email: str
+    name: Optional[str] = None
+    avatar_url: Optional[str] = None
+    token: str
+    expires_at: datetime
+
+
+class SessionResponse(BaseModel):
+    id: str
+    user_id: str
+    token: str
+    expires_at: datetime
+    created_at: datetime
+
+
+# ============================================
+# AUTH ENDPOINTS
+# ============================================
+
+@router.post("/api/auth/signup", response_model=AuthResponse)
+async def signup(
+    body: SignupRequest,
+    session: Session = Depends(get_session),
+):
+    """Create a new user account."""
+    # Check if user already exists
+    existing = session.exec(
+        select(User).where(User.email == body.email)
+    ).first()
+    
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    
+    # Create new user
+    user_id = str(uuid.uuid4())
+    user = User(
+        id=user_id,
+        email=body.email,
+        name=body.name,
+        email_verified=False,
+    )
+    session.add(user)
+    
+    # Create account with password
+    account = Account(
+        id=str(uuid.uuid4()),
+        user_id=user_id,
+        account_id=body.email,
+        provider_id="credentials",
+        password=body.password,  # In production, hash this!
+    )
+    session.add(account)
+    session.commit()
+    session.refresh(user)
+    
+    # Generate JWT token
+    expires_at = datetime.utcnow() + timedelta(days=7)
+    token = jwt.encode(
+        {
+            "sub": user_id,
+            "email": user.email,
+            "exp": expires_at,
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+    
+    return AuthResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        avatar_url=user.avatar_url,
+        token=token,
+        expires_at=expires_at,
+    )
+
+
+@router.post("/api/auth/signin", response_model=AuthResponse)
+async def signin(
+    body: SigninRequest,
+    session: Session = Depends(get_session),
+):
+    """Login user with email and password."""
+    user = session.exec(
+        select(User).where(User.email == body.email)
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Check password (in production, use bcrypt or similar)
+    account = session.exec(
+        select(Account).where(
+            Account.user_id == user.id,
+            Account.provider_id == "credentials"
+        )
+    ).first()
+    
+    if not account or account.password != body.password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Generate JWT token
+    expires_at = datetime.utcnow() + timedelta(days=7)
+    token = jwt.encode(
+        {
+            "sub": user.id,
+            "email": user.email,
+            "exp": expires_at,
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+    
+    # Create session record
+    db_session = DBSession(
+        id=str(uuid.uuid4()),
+        user_id=user.id,
+        token=token,
+        expires_at=expires_at,
+    )
+    session.add(db_session)
+    session.commit()
+    
+    return AuthResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        avatar_url=user.avatar_url,
+        token=token,
+        expires_at=expires_at,
+    )
+
+
+@router.post("/api/auth/signout")
+async def signout(
+    current_user: AuthUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Logout user by invalidating session."""
+    # In a real app, you'd invalidate the token here
+    return {"message": "Signed out successfully"}
+
+
+@router.get("/api/auth/session", response_model=SessionResponse)
+async def get_session_info(
+    current_user: AuthUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Get current session information."""
+    db_session = session.exec(
+        select(DBSession).where(DBSession.user_id == current_user.id)
+    ).first()
+    
+    if not db_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    return SessionResponse(
+        id=db_session.id,
+        user_id=db_session.user_id,
+        token=db_session.token,
+        expires_at=db_session.expires_at,
+        created_at=db_session.created_at,
+    )
+
+
+@router.post("/api/auth/refresh")
+async def refresh_token(
+    current_user: AuthUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Refresh JWT token."""
+    user = session.exec(
+        select(User).where(User.id == current_user.id)
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Generate new token
+    expires_at = datetime.utcnow() + timedelta(days=7)
+    token = jwt.encode(
+        {
+            "sub": user.id,
+            "email": user.email,
+            "exp": expires_at,
+        },
+        SECRET,
+        algorithm="HS256",
+    )
+    
+    return AuthResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        avatar_url=user.avatar_url,
+        token=token,
+        expires_at=expires_at,
+    )

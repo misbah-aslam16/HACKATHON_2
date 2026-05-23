@@ -1,2 +1,15 @@
 __pycache__/
 *.pyc
+.env.local
+backend/.env.local
+todo-app-fullstack/.env.local
+.env
+backend/.env
+todo-app-fullstack/.env
+*.pem
+*.key
+.DS_Store
+node_modules/
+.next/
+dist/
+build/

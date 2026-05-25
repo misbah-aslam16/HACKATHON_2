@@ -8,7 +8,7 @@ import os
 import jwt
 import uuid
 from datetime import datetime, timedelta
-from fastapi import HTTPException, Header, APIRouter, Depends
+from fastapi import HTTPException, Header, APIRouter, Depends, Response
 from sqlmodel import Session, select
 from typing import Optional
 from pydantic import BaseModel
@@ -95,6 +95,10 @@ class AuthResponse(BaseModel):
     avatar_url: Optional[str] = None
     token: str
     expires_at: datetime
+    
+    # Better Auth compatibility
+    class Config:
+        populate_by_name = True
 
 
 class SessionResponse(BaseModel):
@@ -181,9 +185,25 @@ async def signup(
 async def better_auth_signup(
     body: SignupRequest,
     session: Session = Depends(get_session),
+    response: Response = None,
 ):
     """Better Auth compatible signup endpoint."""
-    return await signup(body, session)
+    if response is None:
+        response = Response()
+    
+    result = await signup(body, session)
+    
+    # Set token as HTTP-only cookie for better-auth
+    response.set_cookie(
+        key="better-auth.session_token",
+        value=result.token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=7*24*60*60  # 7 days
+    )
+    
+    return result
 
 
 @router.post("/api/auth/signin", response_model=AuthResponse)
@@ -255,9 +275,25 @@ async def signin(
 async def better_auth_signin(
     body: SigninRequest,
     session: Session = Depends(get_session),
+    response: Response = None,
 ):
     """Better Auth compatible signin endpoint."""
-    return await signin(body, session)
+    if response is None:
+        response = Response()
+    
+    result = await signin(body, session)
+    
+    # Set token as HTTP-only cookie for better-auth
+    response.set_cookie(
+        key="better-auth.session_token",
+        value=result.token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=7*24*60*60  # 7 days
+    )
+    
+    return result
 
 
 @router.post("/api/auth/signout")

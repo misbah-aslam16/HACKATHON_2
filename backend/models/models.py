@@ -17,7 +17,7 @@ class User(SQLModel, table=True):
     name: Optional[str] = None
     emailVerified: bool = Field(default=False, sa_column_kwargs={"name": "emailVerified"})
     image: Optional[str] = None
-    avatar_url: Optional[str] = None
+    avatarUrl: Optional[str] = Field(default=None, sa_column_kwargs={"name": "avatarUrl"})
     createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
     updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
     

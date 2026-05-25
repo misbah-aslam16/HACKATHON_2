@@ -163,7 +163,7 @@ async def signup(
             id=user.id,
             email=user.email,
             name=user.name,
-            avatar_url=user.avatar_url,
+            avatar_url=user.avatarUrl,
             token=token,
             expires_at=expires_at,
         )
@@ -237,7 +237,7 @@ async def signin(
             id=user.id,
             email=user.email,
             name=user.name,
-            avatar_url=user.avatar_url,
+            avatar_url=user.avatarUrl,
             token=token,
             expires_at=expires_at,
         )
@@ -331,7 +331,7 @@ async def refresh_token(
         id=user.id,
         email=user.email,
         name=user.name,
-        avatar_url=user.avatar_url,
+        avatar_url=user.avatarUrl,
         token=token,
         expires_at=expires_at,
     )

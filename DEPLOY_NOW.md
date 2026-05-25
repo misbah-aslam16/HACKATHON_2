@@ -1,128 +1,103 @@
-# 🚀 DEPLOY NOW - 3 Simple Steps
+# 🚀 DEPLOY NOW - Step by Step
 
-## Your Current Setup
+## What Was Fixed
+✅ All Python models now use **snake_case** to match the actual PostgreSQL database schema
+✅ No more `RuntimeError: Passing sa_column_kwargs is not supported when also passing a sa_column`
+✅ No more `column "user_id" of relation "account" does not exist` errors
 
-✅ **Backend:** https://hackathon2-production-8e72.up.railway.app (Already live)  
-✅ **Database:** Neon PostgreSQL (Already connected)  
-✅ **GitHub Actions:** Ready to deploy frontend  
-⏳ **Frontend:** Ready to deploy to Vercel
-
----
-
-## Step 1️⃣: Get Vercel Credentials (5 minutes)
-
-### Get VERCEL_TOKEN
-1. Go to: https://vercel.com/account/tokens
-2. Click **"Create Token"**
-3. Copy the token (starts with `vercel_`)
-
-### Get VERCEL_ORG_ID and VERCEL_PROJECT_ID
-1. Go to your Vercel project dashboard
-2. Click **Settings** → **General**
-3. Copy **Project ID**
-4. Copy **Team ID** (or your account ID if personal)
-
-**OR** use Vercel CLI:
-```bash
-cd todo-app-fullstack
-vercel link
+## Latest Commit
+```
+1393250 - fix: revert to snake_case field names to match actual database schema
 ```
 
----
+## Deployment Steps
 
-## Step 2️⃣: Add GitHub Secrets (3 minutes)
+### Step 1: Redeploy Backend on Railway
+1. Open: https://railway.app/dashboard
+2. Click on your **backend** service
+3. Click the **"Deployments"** tab
+4. Click the **"Deploy"** button (top right)
+5. Wait 5-10 minutes for deployment to complete
+6. Check the logs to confirm it started without errors
 
-Go to: **https://github.com/asma-aslam30/HACKATHON_2/settings/secrets/actions**
+### Step 2: Test Signup (After Deployment)
+Open your browser and go to: https://hackathon-2-tiqg.vercel.app
 
-Add these 8 secrets by clicking **"New repository secret"**:
+1. Click "Sign Up"
+2. Enter email: `test@example.com`
+3. Enter password: `password123`
+4. Click "Sign Up"
+5. **Expected**: Should redirect to dashboard ✅
 
-| Secret Name | Value |
-|-------------|-------|
-| `VERCEL_TOKEN` | Your Vercel token from Step 1 |
-| `VERCEL_ORG_ID` | Your Vercel Org/Team ID from Step 1 |
-| `VERCEL_PROJECT_ID` | Your Vercel Project ID from Step 1 |
-| `VERCEL_PROJECT_NAME` | `todo-app-frontend` |
-| `DATABASE_URL` | `postgresql://neondb_owner:npg_sm7VNYxjK3nU@ep-frosty-mouse-a4hyr3wp-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require` |
-| `DATABASE_URL_UNPOOLED` | `postgresql://neondb_owner:npg_sm7VNYxjK3nU@ep-frosty-mouse-a4hyr3wp.us-east-1.aws.neon.tech/neondb?sslmode=require` |
-| `AUTH_SECRET` | `dev-better-auth-secret-change-in-production` |
-| `BETTER_AUTH_SECRET` | `wbaQXPKS9uqvAhCmyghy+m4SwjQQEv/3bq8ImBRoAfc=` |
+### Step 3: Test Signin
+1. Click "Sign Out" (if logged in)
+2. Click "Sign In"
+3. Enter email: `test@example.com`
+4. Enter password: `password123`
+5. Click "Sign In"
+6. **Expected**: Should redirect to dashboard ✅
 
----
+### Step 4: Verify in Console
+Open browser DevTools (F12) → Console tab
 
-## Step 3️⃣: Deploy (1 minute)
+**Should NOT see these errors:**
+- ❌ `401 Unauthorized` on `/api/auth/get-session`
+- ❌ `500 Internal Server Error` on signup
+- ❌ `column "user_id" does not exist`
 
-Push to main branch:
+**Should see:**
+- ✅ Successful signup response with token
+- ✅ Successful signin response with token
+- ✅ Successful session retrieval
+
+## If Something Goes Wrong
+
+### Error: Still getting 500 on signup
+1. Check Railway logs: https://railway.app/dashboard
+2. Look for error messages
+3. Common issues:
+   - Database connection failed → Check DATABASE_URL_UNPOOLED env var
+   - Import error → Check Python syntax (should be fine)
+   - Missing env vars → Check BETTER_AUTH_SECRET is set
+
+### Error: Still getting 401 on get-session
+1. Make sure you're sending the token in the Authorization header
+2. Token should be in format: `Authorization: Bearer <token>`
+3. Check that token hasn't expired
+
+### Error: Redirect not working
+1. Check frontend logs in browser console
+2. Make sure backend is responding with 200 OK
+3. Check that AppContext.js has redirect logic
+
+## Quick Test Commands (Local)
+
+If you want to test locally first:
 
 ```bash
-git add .
-git commit -m "fix: deploy frontend to vercel with railway backend"
-git push origin main
+# Start backend
+cd backend
+python -m uvicorn main:app --reload
+
+# In another terminal, test signup
+curl -X POST http://localhost:8000/api/auth/sign-up/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"pass123","name":"Test"}'
+
+# Test signin
+curl -X POST http://localhost:8000/api/auth/sign-in/email \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"pass123"}'
+
+# Test get-session (replace TOKEN with actual token from signup)
+curl -X GET http://localhost:8000/api/auth/get-session \
+  -H "Authorization: Bearer TOKEN"
 ```
 
-**That's it!** GitHub Actions will automatically deploy your frontend to Vercel.
+## Summary
+- ✅ Code is fixed and pushed to GitHub
+- ✅ All models use snake_case (matches DB)
+- ✅ No more schema conflicts
+- ⏳ **Just need to redeploy on Railway**
 
----
-
-## 📊 Monitor Deployment
-
-1. Go to: https://github.com/asma-aslam30/HACKATHON_2/actions
-2. Click the **"Deploy Frontend to Vercel"** workflow
-3. Watch it deploy (takes 2-5 minutes)
-4. Check your Vercel dashboard for the live URL
-
----
-
-## ✅ Verify It Works
-
-After deployment:
-
-1. **Open your Vercel frontend URL**
-2. **Create a todo** - Should save to Railway backend
-3. **Refresh the page** - Todo should still be there
-4. **Edit/Delete a todo** - Should work instantly
-
----
-
-## 🎉 Your Stack is Now Live!
-
-| Component | URL | Status |
-|-----------|-----|--------|
-| Frontend | https://todo-app-frontend.vercel.app | ✅ Deployed |
-| Backend | https://hackathon2-production-8e72.up.railway.app | ✅ Live |
-| Database | Neon PostgreSQL | ✅ Connected |
-
----
-
-## 🆘 If Something Goes Wrong
-
-### GitHub Actions Failed?
-- Go to: https://github.com/asma-aslam30/HACKATHON_2/actions
-- Click the failed workflow
-- Check the error message
-- Verify all 8 secrets are added correctly
-
-### Frontend Can't Connect to Backend?
-- Open browser DevTools (F12)
-- Check Network tab for API calls
-- Look for CORS errors
-- Verify backend is running: https://hackathon2-production-8e72.up.railway.app/health
-
-### Todos Not Saving?
-- Check backend logs in Railway dashboard
-- Verify database connection
-- Check browser console for errors
-
----
-
-## 📞 Quick Links
-
-- **Add GitHub Secrets:** https://github.com/asma-aslam30/HACKATHON_2/settings/secrets/actions
-- **GitHub Actions:** https://github.com/asma-aslam30/HACKATHON_2/actions
-- **Vercel Dashboard:** https://vercel.com/dashboard
-- **Railway Dashboard:** https://railway.app/dashboard
-- **Backend API Docs:** https://hackathon2-production-8e72.up.railway.app/docs
-
----
-
-**Ready? Let's go! 🚀**
-
+**Next Action**: Go to Railway and click "Deploy" button!

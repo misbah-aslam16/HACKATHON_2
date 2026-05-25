@@ -37,23 +37,21 @@ app = FastAPI(
 # ============================================
 # CORS CONFIGURATION
 # ============================================
-# Replace wildcard patterns with specific domains
 allowed_origins = [
     os.getenv("FRONTEND_URL", "http://localhost:3000"),
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:8000",
     "http://localhost:8080",
+    "https://hackathon-2-tiqg.vercel.app",  # Your actual Vercel URL
     "https://todo-app-frontend.vercel.app",
-    "https://*.run.app",
-    "https://*.web.app",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

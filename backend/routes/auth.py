@@ -134,7 +134,7 @@ async def signup(
             id=user_id,
             email=body.email,
             name=body.name or body.email.split("@")[0],
-            emailVerified=False,
+            email_verified=False,
         )
         session.add(user)
         session.flush()  # Flush to get the user in the session
@@ -142,9 +142,9 @@ async def signup(
         # Create account with password
         account = Account(
             id=str(uuid.uuid4()),
-            userId=user_id,
-            accountId=body.email,
-            providerId="credentials",
+            user_id=user_id,
+            account_id=body.email,
+            provider_id="credentials",
             password=body.password,
         )
         session.add(account)
@@ -167,7 +167,7 @@ async def signup(
             id=user.id,
             email=user.email,
             name=user.name,
-            avatar_url=user.avatarUrl,
+            avatar_url=user.avatar_url,
             token=token,
             expires_at=expires_at,
         )
@@ -223,8 +223,8 @@ async def signin(
         # Check password (in production, use bcrypt or similar)
         account = session.exec(
             select(Account).where(
-                Account.userId == user.id,
-                Account.providerId == "credentials"
+                Account.user_id == user.id,
+                Account.provider_id == "credentials"
             )
         ).first()
         
@@ -246,9 +246,9 @@ async def signin(
         # Create session record
         db_session = DBSession(
             id=str(uuid.uuid4()),
-            userId=user.id,
+            user_id=user.id,
             token=token,
-            expiresAt=expires_at,
+            expires_at=expires_at,
         )
         session.add(db_session)
         session.commit()
@@ -257,7 +257,7 @@ async def signin(
             id=user.id,
             email=user.email,
             name=user.name,
-            avatar_url=user.avatarUrl,
+            avatar_url=user.avatar_url,
             token=token,
             expires_at=expires_at,
         )
@@ -313,7 +313,7 @@ async def get_session_info(
 ):
     """Get current session information."""
     db_session = session.exec(
-        select(DBSession).where(DBSession.userId == current_user.id)
+        select(DBSession).where(DBSession.user_id == current_user.id)
     ).first()
     
     if not db_session:
@@ -321,10 +321,10 @@ async def get_session_info(
     
     return SessionResponse(
         id=db_session.id,
-        user_id=db_session.userId,
+        user_id=db_session.user_id,
         token=db_session.token,
-        expires_at=db_session.expiresAt,
-        created_at=db_session.createdAt,
+        expires_at=db_session.expires_at,
+        created_at=db_session.created_at,
     )
 
 

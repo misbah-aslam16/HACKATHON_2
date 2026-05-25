@@ -15,11 +15,11 @@ class User(SQLModel, table=True):
     id: str = Field(primary_key=True)
     email: str = Field(unique=True, index=True)
     name: Optional[str] = None
-    emailVerified: bool = Field(default=False, sa_column_kwargs={"name": "emailVerified"})
+    email_verified: bool = Field(default=False)
     image: Optional[str] = None
-    avatarUrl: Optional[str] = Field(default=None, sa_column_kwargs={"name": "avatarUrl"})
-    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
-    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
+    avatar_url: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Relationships
     todos: list["Todo"] = Relationship(back_populates="user")
@@ -32,13 +32,13 @@ class Session(SQLModel, table=True):
     __tablename__ = "session"
     
     id: str = Field(primary_key=True)
-    userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
-    expiresAt: datetime = Field(sa_column_kwargs={"name": "expiresAt"})
+    user_id: str = Field(foreign_key="users.id", index=True)
+    expires_at: datetime = Field()
     token: str = Field(unique=True, index=True)
-    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
-    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
-    ipAddress: Optional[str] = Field(default=None, sa_column_kwargs={"name": "ipAddress"})
-    userAgent: Optional[str] = Field(default=None, sa_column_kwargs={"name": "userAgent"})
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    ip_address: Optional[str] = Field(default=None)
+    user_agent: Optional[str] = Field(default=None)
     
     user: User = Relationship(back_populates="sessions")
 
@@ -47,18 +47,18 @@ class Account(SQLModel, table=True):
     __tablename__ = "account"
     
     id: str = Field(primary_key=True)
-    userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
-    accountId: str = Field(sa_column_kwargs={"name": "accountId"})
-    providerId: str = Field(sa_column_kwargs={"name": "providerId"})
-    accessToken: Optional[str] = Field(default=None, sa_column_kwargs={"name": "accessToken"})
-    refreshToken: Optional[str] = Field(default=None, sa_column_kwargs={"name": "refreshToken"})
-    idToken: Optional[str] = Field(default=None, sa_column_kwargs={"name": "idToken"})
-    accessTokenExpiresAt: Optional[datetime] = Field(default=None, sa_column_kwargs={"name": "accessTokenExpiresAt"})
-    refreshTokenExpiresAt: Optional[datetime] = Field(default=None, sa_column_kwargs={"name": "refreshTokenExpiresAt"})
+    user_id: str = Field(foreign_key="users.id", index=True)
+    account_id: str = Field()
+    provider_id: str = Field()
+    access_token: Optional[str] = Field(default=None)
+    refresh_token: Optional[str] = Field(default=None)
+    id_token: Optional[str] = Field(default=None)
+    access_token_expires_at: Optional[datetime] = Field(default=None)
+    refresh_token_expires_at: Optional[datetime] = Field(default=None)
     scope: Optional[str] = None
     password: Optional[str] = None
-    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
-    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     user: User = Relationship(back_populates="accounts")
 
@@ -75,24 +75,24 @@ class Todo(SQLModel, table=True):
     description: Optional[str] = None
     completed: bool = Field(default=False)
     priority: str = Field(default="medium")  # low | medium | high
-    dueDate: Optional[datetime] = Field(default=None, sa_column_kwargs={"name": "dueDate"})
-    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
-    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
-    userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
+    due_date: Optional[datetime] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    user_id: str = Field(foreign_key="users.id", index=True)
     tags: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="tags"))  # JSON array
-    assignedTo: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="assignedTo"))  # JSON array
+    assigned_to: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="assigned_to"))  # JSON array
     version: int = Field(default=1)
-    lastModifiedBy: Optional[str] = Field(default=None, sa_column_kwargs={"name": "lastModifiedBy"})
+    last_modified_by: Optional[str] = Field(default=None)
     
     # Relationships
     user: User = Relationship(back_populates="todos")
     comments: list["Comment"] = Relationship(back_populates="todo")
     
     # Recurrence & reminders
-    recurrencePattern: Optional[str] = Field(default=None, sa_column_kwargs={"name": "recurrencePattern"})  # none | daily | weekly | monthly
-    reminderOffset: Optional[int] = Field(default=None, sa_column_kwargs={"name": "reminderOffset"})  # minutes before due date
-    reminderEnabled: bool = Field(default=False, sa_column_kwargs={"name": "reminderEnabled"})
-    suggestionDismissed: bool = Field(default=False, sa_column_kwargs={"name": "suggestionDismissed"})
+    recurrence_pattern: Optional[str] = Field(default=None)  # none | daily | weekly | monthly
+    reminder_offset: Optional[int] = Field(default=None)  # minutes before due date
+    reminder_enabled: bool = Field(default=False)
+    suggestion_dismissed: bool = Field(default=False)
 
 
 class Comment(SQLModel, table=True):
@@ -100,10 +100,10 @@ class Comment(SQLModel, table=True):
     
     id: str = Field(primary_key=True)
     content: str
-    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
-    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
-    userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
-    todoId: str = Field(foreign_key="todos.id", index=True, sa_column_kwargs={"name": "todoId"})
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    todo_id: str = Field(foreign_key="todos.id", index=True)
     mentions: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="mentions"))  # JSON array
     resolved: bool = Field(default=False)
     

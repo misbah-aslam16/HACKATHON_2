@@ -4,6 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Import all models so they're registered with SQLModel
+# This MUST happen before create_all() is called
+from models.models import (  # noqa: F401
+    User, Session as DBSession, Account, Todo, Comment,
+    Task, Conversation, Message
+)
+
 # Use the UNPOOLED URL for SQLAlchemy (Neon pooled URL breaks with psycopg2)
 DATABASE_URL = os.getenv("DATABASE_URL_UNPOOLED") or os.getenv("DATABASE_URL", "")
 

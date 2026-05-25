@@ -79,8 +79,8 @@ class Todo(SQLModel, table=True):
     createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
     updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
     userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
-    tags: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON))  # JSON array
-    assignedTo: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON), sa_column_kwargs={"name": "assignedTo"})  # JSON array
+    tags: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="tags"))  # JSON array
+    assignedTo: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="assignedTo"))  # JSON array
     version: int = Field(default=1)
     lastModifiedBy: Optional[str] = Field(default=None, sa_column_kwargs={"name": "lastModifiedBy"})
     
@@ -104,7 +104,7 @@ class Comment(SQLModel, table=True):
     updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
     userId: str = Field(foreign_key="users.id", index=True, sa_column_kwargs={"name": "userId"})
     todoId: str = Field(foreign_key="todos.id", index=True, sa_column_kwargs={"name": "todoId"})
-    mentions: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON))  # JSON array
+    mentions: str = Field(default="[]", sa_column=Column(SQLAlchemyJSON, name="mentions"))  # JSON array
     resolved: bool = Field(default=False)
     
     user: User = Relationship(back_populates="comments")

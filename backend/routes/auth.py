@@ -115,56 +115,63 @@ async def signup(
     session: Session = Depends(get_session),
 ):
     """Create a new user account."""
-    # Check if user already exists
-    existing = session.exec(
-        select(User).where(User.email == body.email)
-    ).first()
-    
-    if existing:
-        raise HTTPException(status_code=409, detail="Email already registered")
-    
-    # Create new user
-    user_id = str(uuid.uuid4())
-    user = User(
-        id=user_id,
-        email=body.email,
-        name=body.name,
-        email_verified=False,
-    )
-    session.add(user)
-    
-    # Create account with password
-    account = Account(
-        id=str(uuid.uuid4()),
-        user_id=user_id,
-        account_id=body.email,
-        provider_id="credentials",
-        password=body.password,  # In production, hash this!
-    )
-    session.add(account)
-    session.commit()
-    session.refresh(user)
-    
-    # Generate JWT token
-    expires_at = datetime.utcnow() + timedelta(days=7)
-    token = jwt.encode(
-        {
-            "sub": user_id,
-            "email": user.email,
-            "exp": expires_at,
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-    
-    return AuthResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        avatar_url=user.avatar_url,
-        token=token,
-        expires_at=expires_at,
-    )
+    try:
+        # Check if user already exists
+        existing = session.exec(
+            select(User).where(User.email == body.email)
+        ).first()
+        
+        if existing:
+            raise HTTPException(status_code=409, detail="Email already registered")
+        
+        # Create new user
+        user_id = str(uuid.uuid4())
+        user = User(
+            id=user_id,
+            email=body.email,
+            name=body.name or body.email.split("@")[0],
+            email_verified=False,
+        )
+        session.add(user)
+        session.flush()  # Flush to get the user in the session
+        
+        # Create account with password
+        account = Account(
+            id=str(uuid.uuid4()),
+            user_id=user_id,
+            account_id=body.email,
+            provider_id="credentials",
+            password=body.password,
+        )
+        session.add(account)
+        session.commit()
+        session.refresh(user)
+        
+        # Generate JWT token
+        expires_at = datetime.utcnow() + timedelta(days=7)
+        token = jwt.encode(
+            {
+                "sub": user_id,
+                "email": user.email,
+                "exp": expires_at,
+            },
+            SECRET,
+            algorithm="HS256",
+        )
+        
+        return AuthResponse(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            avatar_url=user.avatar_url,
+            token=token,
+            expires_at=expires_at,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Signup error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
 
 
 @router.post("/api/auth/signin", response_model=AuthResponse)
@@ -173,54 +180,60 @@ async def signin(
     session: Session = Depends(get_session),
 ):
     """Login user with email and password."""
-    user = session.exec(
-        select(User).where(User.email == body.email)
-    ).first()
-    
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Check password (in production, use bcrypt or similar)
-    account = session.exec(
-        select(Account).where(
-            Account.user_id == user.id,
-            Account.provider_id == "credentials"
+    try:
+        user = session.exec(
+            select(User).where(User.email == body.email)
+        ).first()
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Check password (in production, use bcrypt or similar)
+        account = session.exec(
+            select(Account).where(
+                Account.user_id == user.id,
+                Account.provider_id == "credentials"
+            )
+        ).first()
+        
+        if not account or account.password != body.password:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        # Generate JWT token
+        expires_at = datetime.utcnow() + timedelta(days=7)
+        token = jwt.encode(
+            {
+                "sub": user.id,
+                "email": user.email,
+                "exp": expires_at,
+            },
+            SECRET,
+            algorithm="HS256",
         )
-    ).first()
-    
-    if not account or account.password != body.password:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Generate JWT token
-    expires_at = datetime.utcnow() + timedelta(days=7)
-    token = jwt.encode(
-        {
-            "sub": user.id,
-            "email": user.email,
-            "exp": expires_at,
-        },
-        SECRET,
-        algorithm="HS256",
-    )
-    
-    # Create session record
-    db_session = DBSession(
-        id=str(uuid.uuid4()),
-        user_id=user.id,
-        token=token,
-        expires_at=expires_at,
-    )
-    session.add(db_session)
-    session.commit()
-    
-    return AuthResponse(
-        id=user.id,
-        email=user.email,
-        name=user.name,
-        avatar_url=user.avatar_url,
-        token=token,
-        expires_at=expires_at,
-    )
+        
+        # Create session record
+        db_session = DBSession(
+            id=str(uuid.uuid4()),
+            user_id=user.id,
+            token=token,
+            expires_at=expires_at,
+        )
+        session.add(db_session)
+        session.commit()
+        
+        return AuthResponse(
+            id=user.id,
+            email=user.email,
+            name=user.name,
+            avatar_url=user.avatar_url,
+            token=token,
+            expires_at=expires_at,
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Signin error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Signin failed: {str(e)}")
 
 
 @router.post("/api/auth/signout")

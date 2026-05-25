@@ -15,11 +15,11 @@ class User(SQLModel, table=True):
     id: str = Field(primary_key=True)
     email: str = Field(unique=True, index=True)
     name: Optional[str] = None
-    email_verified: bool = Field(default=False)
+    emailVerified: bool = Field(default=False, sa_column_kwargs={"name": "emailVerified"})
     image: Optional[str] = None
     avatar_url: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "createdAt"})
+    updatedAt: datetime = Field(default_factory=datetime.utcnow, sa_column_kwargs={"name": "updatedAt"})
     
     # Relationships
     todos: list["Todo"] = Relationship(back_populates="user")

@@ -130,7 +130,7 @@ async def signup(
             id=user_id,
             email=body.email,
             name=body.name or body.email.split("@")[0],
-            email_verified=False,
+            emailVerified=False,
         )
         session.add(user)
         session.flush()  # Flush to get the user in the session

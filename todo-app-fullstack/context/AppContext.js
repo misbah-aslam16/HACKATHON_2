@@ -1,11 +1,13 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect } from 'react'
+import { useRouter } from 'next/router'
 import { useSession, signIn, signOut, signUp } from '../lib/auth-client'
 
 const AppContext = createContext(null)
 
 export function AppProvider({ children }) {
+  const router = useRouter()
   const { data: session, isPending } = useSession()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -15,19 +17,28 @@ export function AppProvider({ children }) {
     if (!isPending) {
       setUser(session?.user || null)
       setLoading(false)
+      
+      // Auto-redirect to dashboard if user is logged in and on auth page
+      if (session?.user && router.pathname === '/auth') {
+        router.push('/dashboard')
+      }
     }
-  }, [session, isPending])
+  }, [session, isPending, router])
 
   const login = async (email, password) => {
     try {
       const result = await signIn.email({
         email,
         password,
-        callbackURL: '/' // Redirect after login
+        callbackURL: '/dashboard' // Redirect after login
       })
       if (result?.error) {
         throw new Error(result.error.message || 'Login failed')
       }
+      // Manual redirect if callbackURL doesn't work
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 500)
       return result
     } catch (error) {
       throw error
@@ -40,11 +51,15 @@ export function AppProvider({ children }) {
         email,
         password,
         name: name || email.split('@')[0],
-        callbackURL: '/' // Redirect after signup
+        callbackURL: '/dashboard' // Redirect after signup
       })
       if (result?.error) {
         throw new Error(result.error.message || 'Signup failed')
       }
+      // Manual redirect if callbackURL doesn't work
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 500)
       return result
     } catch (error) {
       throw error
@@ -55,6 +70,7 @@ export function AppProvider({ children }) {
     try {
       await signOut()
       setUser(null)
+      router.push('/auth')
     } catch (error) {
       console.error('Logout error:', error)
     }

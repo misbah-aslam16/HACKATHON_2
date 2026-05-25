@@ -148,8 +148,7 @@ async def signup(
             password=body.password,
         )
         session.add(account)
-        session.commit()
-        session.refresh(user)
+        session.flush()
         
         # Generate JWT token
         expires_at = datetime.utcnow() + timedelta(days=7)
@@ -162,6 +161,17 @@ async def signup(
             SECRET,
             algorithm="HS256",
         )
+        
+        # Create session record (so get-session works immediately after signup)
+        db_session = DBSession(
+            id=str(uuid.uuid4()),
+            userId=user_id,
+            token=token,
+            expiresAt=expires_at,
+        )
+        session.add(db_session)
+        session.commit()
+        session.refresh(user)
         
         return AuthResponse(
             id=user.id,

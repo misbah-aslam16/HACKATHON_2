@@ -171,7 +171,19 @@ async def signup(
         raise
     except Exception as e:
         print(f"Signup error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Signup failed: {str(e)}")
+
+
+# Better Auth compatible endpoints (what the frontend expects)
+@router.post("/api/auth/sign-up/email", response_model=AuthResponse)
+async def better_auth_signup(
+    body: SignupRequest,
+    session: Session = Depends(get_session),
+):
+    """Better Auth compatible signup endpoint."""
+    return await signup(body, session)
 
 
 @router.post("/api/auth/signin", response_model=AuthResponse)
@@ -233,7 +245,19 @@ async def signin(
         raise
     except Exception as e:
         print(f"Signin error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Signin failed: {str(e)}")
+
+
+# Better Auth compatible endpoints
+@router.post("/api/auth/sign-in/email", response_model=AuthResponse)
+async def better_auth_signin(
+    body: SigninRequest,
+    session: Session = Depends(get_session),
+):
+    """Better Auth compatible signin endpoint."""
+    return await signin(body, session)
 
 
 @router.post("/api/auth/signout")
@@ -266,6 +290,16 @@ async def get_session_info(
         expires_at=db_session.expires_at,
         created_at=db_session.created_at,
     )
+
+
+# Better Auth compatible endpoint
+@router.get("/api/auth/get-session", response_model=SessionResponse)
+async def better_auth_get_session(
+    current_user: AuthUser = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Better Auth compatible get session endpoint."""
+    return await get_session_info(current_user, session)
 
 
 @router.post("/api/auth/refresh")

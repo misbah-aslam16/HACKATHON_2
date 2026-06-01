@@ -43,16 +43,19 @@ allowed_origins = [
     "http://localhost:3001",
     "http://localhost:8000",
     "http://localhost:8080",
-    "https://hackathon-2-tiqg.vercel.app",  # Your actual Vercel URL
+    "https://hackathon-2-tiqg.vercel.app",
     "https://todo-app-frontend.vercel.app",
 ]
 
+# Add CORS middleware with proper credential support
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["Set-Cookie"],
+    max_age=600,
 )
 
 # ============================================

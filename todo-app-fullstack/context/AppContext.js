@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { useSession, signIn, signOut, signUp } from '../lib/auth-client'
 
@@ -13,6 +13,31 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState([])
 
+  // Validate session on mount and periodically
+  const validateSession = useCallback(async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'
+      const response = await fetch(`${backendUrl}/api/auth/get-session`, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          localStorage.removeItem('better-auth-session')
+          setUser(null)
+          return false
+        }
+      }
+      return true
+    } catch (error) {
+      console.error('Session validation error:', error)
+      return false
+    }
+  }, [])
+
   useEffect(() => {
     if (!isPending) {
       setUser(session?.user || null)
@@ -22,20 +47,32 @@ export function AppProvider({ children }) {
       if (session?.user && router.pathname === '/auth') {
         router.push('/dashboard')
       }
+      
+      // Validate session every 5 minutes
+      const validationInterval = setInterval(validateSession, 5 * 60 * 1000)
+      return () => clearInterval(validationInterval)
     }
-  }, [session, isPending, router])
+  }, [session, isPending, router, validateSession])
 
   const login = async (email, password) => {
     try {
       const result = await signIn.email({
         email,
         password,
-        callbackURL: '/dashboard' // Redirect after login
+        callbackURL: '/dashboard'
       })
       if (result?.error) {
         throw new Error(result.error.message || 'Login failed')
       }
-      // Manual redirect if callbackURL doesn't work
+      
+      // Store session in localStorage as backup
+      if (result?.ok) {
+        localStorage.setItem('better-auth-session', JSON.stringify({
+          email,
+          timestamp: Date.now()
+        }))
+      }
+      
       setTimeout(() => {
         router.push('/dashboard')
       }, 500)
@@ -51,12 +88,20 @@ export function AppProvider({ children }) {
         email,
         password,
         name: name || email.split('@')[0],
-        callbackURL: '/dashboard' // Redirect after signup
+        callbackURL: '/dashboard'
       })
       if (result?.error) {
         throw new Error(result.error.message || 'Signup failed')
       }
-      // Manual redirect if callbackURL doesn't work
+      
+      // Store session in localStorage as backup
+      if (result?.ok) {
+        localStorage.setItem('better-auth-session', JSON.stringify({
+          email,
+          timestamp: Date.now()
+        }))
+      }
+      
       setTimeout(() => {
         router.push('/dashboard')
       }, 500)
@@ -70,6 +115,7 @@ export function AppProvider({ children }) {
     try {
       await signOut()
       setUser(null)
+      localStorage.removeItem('better-auth-session')
       router.push('/auth')
     } catch (error) {
       console.error('Logout error:', error)

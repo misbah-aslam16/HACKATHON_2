@@ -203,14 +203,15 @@ async def better_auth_signup(
     
     result = await signup(body, session)
     
-    # Set token as HTTP-only cookie for better-auth
+    # Set token as HTTP-only cookie for better-auth (cross-domain support)
     response.set_cookie(
         key="better-auth.session_token",
         value=result.token,
-        httponly=True,
+        httponly=False,
         secure=True,
-        samesite="lax",
-        max_age=7*24*60*60  # 7 days
+        samesite="none",
+        max_age=7*24*60*60,
+        path="/"
     )
     
     return result
@@ -293,14 +294,15 @@ async def better_auth_signin(
     
     result = await signin(body, session)
     
-    # Set token as HTTP-only cookie for better-auth
+    # Set token as HTTP-only cookie for better-auth (cross-domain support)
     response.set_cookie(
         key="better-auth.session_token",
         value=result.token,
-        httponly=True,
+        httponly=False,
         secure=True,
-        samesite="lax",
-        max_age=7*24*60*60  # 7 days
+        samesite="none",
+        max_age=7*24*60*60,
+        path="/"
     )
     
     return result

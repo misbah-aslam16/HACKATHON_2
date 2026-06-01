@@ -21,6 +21,8 @@ export const auth = betterAuth({
   trustedOrigins: [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://localhost:8000",
     ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
     ...(process.env.TRUSTED_ORIGINS ? process.env.TRUSTED_ORIGINS.split(",").map(o => o.trim()) : []),
   ],
@@ -31,10 +33,13 @@ export const auth = betterAuth({
     requireEmailVerification: false,
   },
 
-  // Session config
+  // Session config with proper cookie settings for production
   session: {
     expiresIn: 7 * 24 * 60 * 60,   // 7 days
     updateAge: 24 * 60 * 60,        // refresh every 24h
+    cookieCache: {
+      enabled: true,
+    }
   },
 
   // Only add Google if both keys are present

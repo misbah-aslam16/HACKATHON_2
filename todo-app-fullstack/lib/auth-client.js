@@ -14,7 +14,9 @@ export const authClient = createAuthClient({
   // Enable credentials for cross-origin requests
   fetchOptions: {
     credentials: 'include'
-  }
+  },
+  // Store session in localStorage as fallback
+  storageKey: 'better-auth-session'
 })
 
 export const { useSession, signIn, signOut, signUp } = authClient;

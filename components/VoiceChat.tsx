@@ -1,5 +1,5 @@
 /**
- * VoiceChat Component
+ * VoiceChat Component  
  * 
  * Voice-enabled chat interface using Web Speech API
  * - Speech Recognition for voice input
